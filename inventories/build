@@ -13,8 +13,7 @@
 # Note: Jenkins will be accessible at http://JIP:8090 after setup
 jenkins-ctl ansible_host=172.31.3.160 ansible_user=ubuntu 
 
-[nexus]
-nexus-01 ansible_host=172.31.73.110 ansible_user=ubuntu 
+
 [build]
 build-01 ansible_host=172.31.75.5 ansible_user=ubuntu 
 
