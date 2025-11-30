@@ -1,0 +1,2 @@
+[nexus]
+nexus-01 ansible_host=172.31.73.110 ansible_user=ubuntu 
