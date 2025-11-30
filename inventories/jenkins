@@ -1,0 +1,2 @@
+[jenkins]
+jenkins-ctl ansible_host=172.31.3.160 ansible_user=ubuntu 
