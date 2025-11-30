@@ -1,0 +1,2 @@
+[sonarqube]
+sonar-01 ansible_host=172.31.14.159 ansible_user=ubuntu 
