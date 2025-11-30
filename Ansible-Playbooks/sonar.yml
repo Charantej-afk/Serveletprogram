@@ -1,0 +1,94 @@
+---
+- name: Deploy SonarQube
+  hosts: sonarqube
+  become: true
+
+  vars:
+    sonar_dir: /opt/sonarqube
+    sonar_port: 9000
+    db_user: sonar
+    db_pass: sonarpassword
+    db_name: sonar
+
+  tasks:
+    - name: Setup Docker Repo
+      block:
+        - name: Add Key
+          get_url:
+            url: https://download.docker.com/linux/ubuntu/gpg
+            dest: /etc/apt/trusted.gpg.d/docker.asc
+            mode: '0644'
+        - name: Add Repo
+          apt_repository:
+            repo: "deb [arch=amd64] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
+            filename: docker
+            state: present
+
+    - name: Install Docker
+      apt:
+        name: [docker-ce, docker-ce-cli, containerd.io, docker-compose-plugin]
+        state: present
+        update_cache: true
+
+    - name: Set vm.max_map_count (Required for ES)
+      sysctl:
+        name: vm.max_map_count
+        value: '262144'
+        state: present
+        reload: true
+
+    - name: Create Directories
+      file:
+        path: "{{ item }}"
+        state: directory
+        mode: '0755'
+      loop: ["{{ sonar_dir }}", "{{ sonar_dir }}/postgresql"]
+
+    - name: Create docker-compose.yml
+      copy:
+        dest: "{{ sonar_dir }}/docker-compose.yml"
+        content: |
+          version: '3.8'
+          services:
+            postgres:
+              image: postgres:14
+              environment:
+                POSTGRES_USER: {{ db_user }}
+                POSTGRES_PASSWORD: {{ db_pass }}
+                POSTGRES_DB: {{ db_name }}
+              volumes:
+                - ./postgresql:/var/lib/postgresql/data
+              networks: [sonarnet]
+            sonarqube:
+              image: sonarqube:10.2-community
+              depends_on: [postgres]
+              environment:
+                SONAR_JDBC_URL: jdbc:postgresql://postgres:5432/{{ db_name }}
+                SONAR_JDBC_USERNAME: {{ db_user }}
+                SONAR_JDBC_PASSWORD: {{ db_pass }}
+              ports: ["{{ sonar_port }}:9000"]
+              volumes:
+                - sonarqube_data:/opt/sonarqube/data
+                - sonarqube_logs:/opt/sonarqube/logs
+                - sonarqube_extensions:/opt/sonarqube/extensions
+              networks: [sonarnet]
+          networks:
+            sonarnet:
+          volumes:
+            sonarqube_data:
+            sonarqube_logs:
+            sonarqube_extensions:
+
+    - name: Start SonarQube
+      command: docker compose up -d
+      args:
+        chdir: "{{ sonar_dir }}"
+
+    - name: Wait for SonarQube
+      wait_for:
+        port: "{{ sonar_port }}"
+        timeout: 300
+
+    - name: Show Info
+      debug:
+        msg: "SonarQube running at http://{{ ansible_default_ipv4.address }}:{{ sonar_port }} (admin/admin)"
