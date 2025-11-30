@@ -9,10 +9,6 @@
 # Nexus runs on port 8081
 # Tomcat runs on port 8080
 
-[jenkins]
-# Note: Jenkins will be accessible at http://JIP:8090 after setup
-jenkins-ctl ansible_host=172.31.3.160 ansible_user=ubuntu 
-
 
 [build]
 build-01 ansible_host=172.31.75.5 ansible_user=ubuntu 
